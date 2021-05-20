@@ -55,6 +55,26 @@ used to implement the reward function R(s,a).
 As an observation of the agent, we use [Image Foveation Python](https://github.com/ouyangzhibo/Image_Foveation_Python) for the foveated image processing.
 The function `foveat_img()` is the implemention according to the Salicon method[4][5].
 
+### Usage
+
+**Random walking on the visual search**
+
+```python
+import numpy as np
+from environment import AfcEnv
+
+env = AfcEnv()
+env.reset()
+observation = env.reset()
+for _ in range(10000):
+    env.render(mode="rgb_array")
+    action = env.action_space.sample()  # action sampled at random
+    observation, reward, done, _ = env.step(action)
+
+    if done:
+        env.reset()
+```
+
 ### References
 
 - [1] Vijaymohan Konda and John N. Tsitsiklis. 2002. Actor-critic algorithms. Ph.D. Dissertation. Massachusetts Institute of Technology, USA. Order Number: AAI0804543.
