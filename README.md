@@ -11,7 +11,10 @@ the agent’s states in order to properly select the next action. We trained the
 policy of the visual object search task in scene images of the MIT Scene Parsing Benchmark
 Dataset[3] by applying the Actor-Critic algorithm[1][2].
 
-![overview_fig](https://github.com/yumaloop/gym-afc/blob/main/figures/afc_sample_0.png "sample0")
+<p align="center">
+  <img src="https://github.com/yumaloop/gym-afc/blob/main/figures/afc_sample_0.png">
+</p>
+
 
 ### Methodology
 
