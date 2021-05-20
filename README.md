@@ -50,3 +50,9 @@ used to implement the reward function R(s,a).
 
 ```
 ```
+
+### References
+
+- Vijaymohan Konda and John N. Tsitsiklis. 2002. Actor-critic algorithms. Ph.D. Dissertation. Massachusetts Institute of Technology, USA. Order Number: AAI0804543.
+- Mnih, V., Badia, A.P., Mirza, M., Graves, A., Lillicrap, T., Harley, T., Silver, D. & Kavukcuoglu, K.. (2016). Asynchronous Methods for Deep Reinforcement Learning. Proceedings of The 33rd International Conference on Machine Learning, in Proceedings of Machine Learning Research 48:1928-1937 Available from http://proceedings.mlr.press/v48/mniha16.html .
+- Scene Parsing through ADE20K Dataset. B. Zhou, H. Zhao, X. Puig, S. Fidler, A. Barriuso and A. Torralba. Computer Vision and Pattern Recognition (CVPR), 2017.
