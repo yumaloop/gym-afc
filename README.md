@@ -23,8 +23,9 @@ As a learning method, we adopt the Actor-Critic algorithm[1] which has both the 
 function Q(s,a;w) and the policy function π(a|s;θ). At each time step, the parameter θ of the
 policy function π(a|s;θ) is updated by using the state-action value Q(s,a;w) (Critic):
 
-{: align="center"}
+<p align="center">
 θ ← θ + η × Q(s,a;w)∇log π(a|s;θ)
+</p>
 
 and then the parameter w of the value function Q(s,a;w) is updated by using the TD error r + γ
 Q(s’,a’;w) - Q(s,a;w) for the current action a (Actor):
