@@ -30,9 +30,9 @@ policy function π(a|s;θ) is updated by using the state-action value Q(s,a;w) (
 and then the parameter w of the value function Q(s,a;w) is updated by using the TD error r + γ
 Q(s’,a’;w) - Q(s,a;w) for the current action a (Actor):
 
-<div style="text-align: center;">
+<p align="center">
 w ← w + η × {r + γ Q(s’,a’;w) - Q(s,a;w)}∇Q(s,a;w)
-</div>
+</p>
 
 where η is a learning rate and γ is a discount rate. The Actor-Critic algorithm is more valid and
 efficient for the general situation than the Q-learning because the heuristic action selections
