@@ -53,6 +53,8 @@ used to implement the reward function R(s,a).
 
 ### References
 
-- Vijaymohan Konda and John N. Tsitsiklis. 2002. Actor-critic algorithms. Ph.D. Dissertation. Massachusetts Institute of Technology, USA. Order Number: AAI0804543.
-- Mnih, V., Badia, A.P., Mirza, M., Graves, A., Lillicrap, T., Harley, T., Silver, D. & Kavukcuoglu, K.. (2016). Asynchronous Methods for Deep Reinforcement Learning. Proceedings of The 33rd International Conference on Machine Learning, in Proceedings of Machine Learning Research 48:1928-1937 Available from http://proceedings.mlr.press/v48/mniha16.html .
-- Scene Parsing through ADE20K Dataset. B. Zhou, H. Zhao, X. Puig, S. Fidler, A. Barriuso and A. Torralba. Computer Vision and Pattern Recognition (CVPR), 2017.
+- [1] Vijaymohan Konda and John N. Tsitsiklis. 2002. Actor-critic algorithms. Ph.D. Dissertation. Massachusetts Institute of Technology, USA. Order Number: AAI0804543.
+- [2] Mnih, V., Badia, A.P., Mirza, M., Graves, A., Lillicrap, T., Harley, T., Silver, D. & Kavukcuoglu, K.. (2016). Asynchronous Methods for Deep Reinforcement Learning. Proceedings of The 33rd International Conference on Machine Learning, in Proceedings of Machine Learning Research 48:1928-1937 Available from http://proceedings.mlr.press/v48/mniha16.html .
+- [3] Scene Parsing through ADE20K Dataset. B. Zhou, H. Zhao, X. Puig, S. Fidler, A. Barriuso and A. Torralba. Computer Vision and Pattern Recognition (CVPR), 2017.
+- [4] Perry, Jeffrey S., and Wilson S. Geisler. "Gaze-contingent real-time simulation of arbitrary visual fields." Human vision and electronic imaging VII. Vol. 4662. International Society for Optics and Photonics, 2002.
+- [5] Jiang, Ming, et al. "Salicon: Saliency in context." Proceedings of the IEEE conference on computer vision and pattern recognition. 2015.
