@@ -11,14 +11,14 @@ the agent’s states in order to properly select the next action. We trained the
 policy of the visual object search task in scene images of the MIT Scene Parsing Benchmark
 Dataset[3] by applying the Actor-Critic algorithm[1][2].
 
-##### Problem Settings
+#### Problem Settings
 
 The standard reinforcement learning settings are used. For each time step, the agent observes
 a visual input s and select an action a according to its policy function π(a|s). In return, the agent
 gets the next state s’ from the transition function P(s’|s,a) and a reward r from the reward
 function R(s,a). This process repeats until a terminal state.
 
-##### Learning Algorithm
+#### Learning Algorithm
 As a learning method, we adopt the Actor-Critic algorithm[1] which has both the value
 function Q(s,a;w) and the policy function π(a|s;θ). At each time step, the parameter θ of the
 policy function π(a|s;θ) is updated by using the state-action value Q(s,a;w) (Critic):
@@ -35,7 +35,7 @@ efficient for the general situation than the Q-learning because the heuristic ac
 such as softmax and ε-gleedy in Q-learning do not acquire the direct mapping between the
 action and the state.
 
-##### Scene Image Dataset
+#### Scene Image Dataset
 
 The MIT Scene Parsing Benchmark Dataset was selected as the material for the visual object
 search task. It is a common large image dataset for analyzing and modeling saliency and spatial
