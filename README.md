@@ -11,6 +11,8 @@ the agent’s states in order to properly select the next action. We trained the
 policy of the visual object search task in scene images of the MIT Scene Parsing Benchmark
 Dataset[3] by applying the Actor-Critic algorithm[1][2].
 
+### Methodology
+
 #### Problem Settings
 
 The standard reinforcement learning settings are used. For each time step, the agent observes
@@ -48,8 +50,10 @@ processing was performed to represent the human vision, where the resolution dro
 fovea to the periphery. Each image has a corresponding semantic segmentation image, which is
 used to implement the reward function R(s,a).
 
-```
-```
+#### Foveated Imaging
+
+As an observation of the agent, we use [Image Foveation Python](https://github.com/ouyangzhibo/Image_Foveation_Python) for the foveated image processing.
+The function `foveat_img()` is the implemention according to the Salicon method[4][5].
 
 ### References
 
