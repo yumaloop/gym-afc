@@ -62,6 +62,13 @@ The function `foveat_img()` is the implemention according to the Salicon[4][5].
 
 ### Usage
 
+**set-up**
+
+```bash
+# download MIT Scene Parsing Benchmark Dataset
+$ wget http://data.csail.mit.edu/places/ADEchallenge/ADEChallengeData2016.zip
+```
+
 **Random walking on the visual search**
 
 ```python
