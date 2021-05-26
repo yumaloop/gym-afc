@@ -1,3 +1,10 @@
+"""
+https://www.tensorflow.org/tutorials/reinforcement_learning/actor_critic
+"""
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
 import collections
 import gym
 import numpy as np
@@ -32,23 +39,39 @@ class ActorCritic(tf.keras.Model):
         """Initialize."""
         super().__init__()
 
-        self.conv1 = tf.keras.layers.Conv2D(64, 5, activation="relu", input_shape=input_shape)
-        self.common = layers.Dense(num_hidden_units, activation="relu")
-        self.flatten = tf.keras.layers.Flatten()
+        # w_init = tf.random_normal_initializer(0.0, 0.01)
+        w_init = tf.keras.initializers.GlorotNormal()
 
-        self.actor = layers.Dense(num_actions)
-        self.critic = layers.Dense(1)
+        self.conv1 = tf.keras.layers.Conv2D(64, 5, activation="relu", kernel_initializer=w_init, input_shape=input_shape)
+        self.conv2 = tf.keras.layers.Conv2D(64, 5, activation="relu", kernel_initializer=w_init)
+        self.dense1 = tf.keras.layers.Dense(num_hidden_units, activation="relu", kernel_initializer=w_init)
+        self.dense2 = tf.keras.layers.Dense(num_hidden_units, activation="relu", kernel_initializer=w_init)
+        self.flatten = tf.keras.layers.Flatten()
+        self.bn1 = tf.keras.layers.BatchNormalization(axis=1)
+        self.bn2 = tf.keras.layers.BatchNormalization(axis=-1)
+        
+        self.actor_mu = tf.keras.layers.Dense(num_actions, activation="tanh", kernel_initializer=w_init) # estimated action value # mu: -1 ~ 1
+        self.actor_sigma = tf.keras.layers.Dense(num_actions, activation="softmax", kernel_initializer=w_init) # estimated action value # sd:  0 ~ 1
+        self.critic = tf.keras.layers.Dense(1)
 
     def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         x = self.conv1(inputs)
+        x = self.conv2(x)
         x = self.flatten(x)
-        x = self.common(x)
-        return self.actor(x), self.critic(x)
+        x = self.bn1(x)
+        x = self.dense1(x)
+        x = self.bn2(x)
+        x = self.dense2(x)
 
+        a_mu = self.actor_mu(x)
+        a_sigma = self.actor_sigma(x)
+        value = self.critic(x)
+        return a_mu, a_sigma, value
 
 num_actions = 3
 num_hidden_units = 128
-input_shape = (512, 683, 3)
+input_shape = (100, 100, 3)
+# input_shape = (512, 683, 3)
 model = ActorCritic(input_shape, num_actions, num_hidden_units)
 
 
@@ -57,13 +80,13 @@ def env_step(action: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     state, reward, done, _ = env.step(action)
     return (
         state.astype(np.float32),
-        np.array(reward, np.int32),
+        np.array(reward, np.float32),
         np.array(done, np.int32),
     )
 
 
 def tf_env_step(action: tf.Tensor) -> List[tf.Tensor]:
-    return tf.numpy_function(env_step, [action], [tf.float32, tf.int32, tf.int32])
+    return tf.numpy_function(env_step, [action], [tf.float32, tf.float32, tf.int32])
 
 
 def run_episode(
@@ -71,9 +94,11 @@ def run_episode(
 ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """Runs a single episode to collect training data."""
 
+    # action_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
+    actions = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
     action_probs = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
     values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
-    rewards = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
+    rewards = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
 
     initial_state_shape = initial_state.shape
     state = initial_state
@@ -83,17 +108,28 @@ def run_episode(
         state = tf.expand_dims(state, 0)
 
         # Run the model and to get action probabilities and critic value
-        action_logits_t, value = model(state)
+        # action_logits_t, value = model(state)
+        a_mu, a_sigma, value = model(state)
+        a_sigma = a_sigma + 0.01
+        # tf.print("value:", value)
 
         # Sample next action from the action probability distribution
-        action = tf.random.categorical(action_logits_t, 1)[0, 0]
-        action_probs_t = tf.nn.softmax(action_logits_t)
+        action_rand = tf.random.normal([1], a_mu, a_sigma, tf.float32)
+        action_probs_t = tf.compat.v1.distributions.Normal(a_mu, a_sigma).prob(action_rand)
+        action = tf.math.tanh(action_rand) # R -> [-1,1]
+        """
+        tf.print("a_mu:", a_mu)
+        tf.print("a_sigma:", a_sigma)
+        tf.print("action_rand:", action_rand)
+        tf.print("action_probs_t:", action_probs_t)
+        """
 
         # Store critic values
         values = values.write(t, tf.squeeze(value))
 
         # Store log probability of the action chosen
-        action_probs = action_probs.write(t, action_probs_t[0, action])
+        actions = actions.write(t, action)
+        action_probs = action_probs.write(t, action_probs_t)
 
         # Apply action to the environment to get next state and reward
         state, reward, done = tf_env_step(action)
@@ -105,11 +141,13 @@ def run_episode(
         if tf.cast(done, tf.bool):
             break
 
-    action_probs = action_probs.stack()
+
+    actions = actions.stack() # list of action-mean
+    action_probs = action_probs.stack() # list of action-sigma
     values = values.stack()
     rewards = rewards.stack()
 
-    return action_probs, values, rewards
+    return actions, action_probs, values, rewards
 
 
 def get_expected_return(
@@ -144,16 +182,25 @@ huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
 
 
 def compute_loss(
-    action_probs: tf.Tensor, values: tf.Tensor, returns: tf.Tensor
+        action_probs: tf.Tensor, values: tf.Tensor, returns: tf.Tensor
 ) -> tf.Tensor:
     """Computes the combined actor-critic loss."""
 
     advantage = returns - values
+    td = tf.subtract(returns, values)
 
+    # actor 
+    # action_log_probs = tf.math.log(action_probs)
+    # actor_loss = -tf.math.reduce_sum(action_log_probs * advantage)
     action_log_probs = tf.math.log(action_probs)
-    actor_loss = -tf.math.reduce_sum(action_log_probs * advantage)
+    actor_loss = -tf.math.reduce_mean(action_log_probs * td)
 
+    # critic
+    # td = tf.subtract(returns, values)
+    # critic_loss = tf.reduce_mean(tf.square(td))
     critic_loss = huber_loss(values, returns)
+
+    tf.print("a_loss:", actor_loss, "c_loss:", critic_loss)
 
     return actor_loss + critic_loss
 
@@ -174,7 +221,7 @@ def train_step(
     with tf.GradientTape() as tape:
 
         # Run the model for one episode to collect training data
-        action_probs, values, rewards = run_episode(
+        actions, action_probs, values, rewards = run_episode(
             initial_state, model, max_steps_per_episode
         )
 
@@ -188,7 +235,7 @@ def train_step(
 
         # Calculating loss values to update our network
         loss = compute_loss(action_probs, values, returns)
-
+    
     # Compute the gradients from the loss
     grads = tape.gradient(loss, model.trainable_variables)
 
@@ -210,17 +257,20 @@ reward_threshold = 195
 running_reward = 0
 
 # Discount factor for future rewards
-gamma = 0.99
+gamma = 0.9 # 0.99
 
 # Keep last episodes reward
 episodes_reward: collections.deque = collections.deque(maxlen=min_episodes_criterion)
 
 with tqdm.trange(max_episodes) as t:
     for i in t:
+        print(f"i={i} start")
         initial_state = tf.constant(env.reset(), dtype=tf.float32)
+        print("env.fixs:", env.fixs)
         episode_reward = int(
             train_step(initial_state, model, optimizer, gamma, max_steps_per_episode)
         )
+        print("i", i, "fin.")
 
         episodes_reward.append(episode_reward)
         running_reward = statistics.mean(episodes_reward)
@@ -230,9 +280,11 @@ with tqdm.trange(max_episodes) as t:
 
         # Show average episode reward every 10 episodes
         if i % 10 == 0:
-            pass  # print(f'Episode {i}: average reward: {avg_reward}')
+            # pass
+            print(f'Episode {i}: running reward: {running_reward}')
 
         if running_reward > reward_threshold and i >= min_episodes_criterion:
+            print("BREAK !!!!")
             break
 
 print(f"\nSolved at episode {i}: average reward: {running_reward:.2f}!")
