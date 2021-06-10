@@ -1,13 +1,9 @@
 import cv2
-import numpy as np
-
 import gym
+import numpy as np
 from gym import error, spaces, utils
 from gym.utils import seeding
-
 from PIL import Image
-from scipy.stats import multivariate_normal
-from image_foveation import foveat_img
 
 
 class AfcEnvGrid(gym.Env):
@@ -20,7 +16,7 @@ class AfcEnvGrid(gym.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 50}
 
     def __init__(self):
-        self.im_path = "./ADEChallengeData2016/images/training/ADE_train_00010429.jpg"
+        self.im_path = "./data/images/ADE_train_00010429.jpg"
         self.an_path = self.im_path.replace("images", "annotations").replace("jpg", "png")
 
         self.im_pil = Image.open(self.im_path)

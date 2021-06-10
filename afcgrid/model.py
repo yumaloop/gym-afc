@@ -10,7 +10,7 @@ class ActorCriticModel(nn.Module):
     https://github.com/pytorch/examples/blob/master/reinforcement_learning/actor_critic.py
     """
     def __init__(self):
-        super(Policy, self).__init__()
+        super(ActorCriticModel, self).__init__()
         action_dims = 8
         state_dims = 2
         h_dims = 8
