@@ -147,7 +147,7 @@ def main():
             break
 
     np.save(f'ep_rewards_seed{seed}',np.array(ep_rewards))
-    torch.save(model.state_dict(), f'actorcritic_afcenvgrid_model_seed{seed}')
+    torch.save(model.state_dict(), f'./saved_model/model_seed{seed}')
 
 if __name__ == '__main__':
     main()
