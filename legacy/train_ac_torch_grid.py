@@ -1,8 +1,5 @@
-# https://github.com/pytorch/examples/blob/master/reinforcement_learning/actor_critic.py
-
 import argparse
 import gym
-import random
 import numpy as np
 from itertools import count
 from collections import namedtuple
@@ -12,65 +9,39 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
-
 from environment import AfcEnvGrid
 
-# seed = random.randint(0,100)
-seed = 42
 gamma = 0.99
-log_interval = 10
+seed = 42
 env = AfcEnvGrid()
 env.seed(seed)
 torch.manual_seed(seed)
 
-
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
-
-class Policy(nn.Module):
+class ActorCritic(nn.Module):
     """
     implements both actor and critic in one model
     """
     def __init__(self):
         super(Policy, self).__init__()
-        action_dims = 8
-        state_dims = 2
-        h_dims = 8
-        
-        self.affine1 = nn.Linear(state_dims, 16, bias=False)
-        self.affine2 = nn.Linear(16, 16, bias=False)
-        
-        self.hx = torch.zeros(1, h_dims)
-        self.cx = torch.zeros(1, h_dims)
-        self.lstmcell = nn.LSTMCell(16, h_dims)
+        self.affine1 = nn.Linear(4, 128)
 
         # actor's layer
-        self.action_head = nn.Linear(h_dims, action_dims, bias=False)
+        self.action_head = nn.Linear(128, 2)
+
         # critic's layer
-        self.value_head = nn.Linear(h_dims, 1, bias=False)
-        
-        # init
-        torch.nn.init.xavier_normal_(self.affine1.weight)
-        torch.nn.init.xavier_normal_(self.affine2.weight)
-        torch.nn.init.xavier_normal_(self.action_head.weight)
-        torch.nn.init.xavier_normal_(self.value_head.weight)
+        self.value_head = nn.Linear(128, 1)
 
         # action & reward buffer
         self.saved_actions = []
         self.rewards = []
 
-    def forward(self, inputs):
+    def forward(self, x):
         """
         forward of both actor and critic
         """
-        x = F.relu(self.affine1(inputs))
-        x = F.relu(self.affine2(x))
-
-        x = x.view(1, 16)
-        hx, cx = self.lstmcell(x, (self.hx, self.cx))
-        x = hx
-        self.hx = hx.detach()
-        self.cx = cx.detach()
+        x = F.relu(self.affine1(x))
 
         # actor: choses action to take from state s_t 
         # by returning probability of each action
@@ -85,16 +56,15 @@ class Policy(nn.Module):
         return action_prob, state_values
 
 
-model = Policy()
+model = ActorCritic()
 optimizer = optim.Adam(model.parameters(), lr=3e-2)
 eps = np.finfo(np.float32).eps.item()
 
 
-steps_done = 0
 def select_action(state):
     state = torch.from_numpy(state).float()
     probs, state_value = model(state)
-    
+
     # create a categorical distribution over the list of probabilities of actions
     m = Categorical(probs)
 
@@ -102,8 +72,7 @@ def select_action(state):
     action = m.sample()
 
     # save to action buffer
-    el = SavedAction(m.log_prob(action), state_value)
-    model.saved_actions.append(el)
+    model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
 
     # the action to take (left or right)
     return action.item()
@@ -122,7 +91,7 @@ def finish_episode():
     # calculate the true value using rewards returned from the environment
     for r in model.rewards[::-1]:
         # calculate the discounted value
-        R = r + gamma * R
+        R = r + args.gamma * R
         returns.insert(0, R)
 
     returns = torch.tensor(returns)
@@ -132,19 +101,16 @@ def finish_episode():
         advantage = R - value.item()
 
         # calculate actor (policy) loss 
-        policy_loss = -log_prob * advantage
-        policy_losses.append(policy_loss.float())
+        policy_losses.append(-log_prob * advantage)
 
         # calculate critic (value) loss using L1 smooth loss
-        value_loss = F.smooth_l1_loss(value, torch.tensor([R]))
-        value_losses.append(value_loss.float())
+        value_losses.append(F.smooth_l1_loss(value, torch.tensor([R])))
 
     # reset gradients
     optimizer.zero_grad()
 
     # sum up all the values of policy_losses and value_losses
     loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
-    loss = loss.double()
 
     # perform backprop
     loss.backward()
@@ -156,12 +122,10 @@ def finish_episode():
 
 
 def main():
-    ep_rewards = []
     running_reward = 10
 
     # run inifinitely many episodes
-    # for i_episode in count(1):
-    for i_episode in range(2000):
+    for i_episode in count(1):
 
         # reset environment and episode reward
         state = env.reset()
@@ -177,13 +141,11 @@ def main():
             # take the action
             state, reward, done, _ = env.step(action)
 
-            render = False
-            if render:
+            if args.render:
                 env.render()
 
             model.rewards.append(reward)
             ep_reward += reward
-
             if done:
                 break
 
@@ -193,25 +155,17 @@ def main():
         # perform backprop
         finish_episode()
 
-        ep_rewards.append(ep_reward)
-
-
         # log results
-        if i_episode % log_interval == 0:
+        if i_episode % args.log_interval == 0:
             print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(
                   i_episode, ep_reward, running_reward))
 
         # check if we have "solved" the cart pole problem
-        """
         if running_reward > env.spec.reward_threshold:
             print("Solved! Running reward is now {} and "
                   "the last episode runs to {} time steps!".format(running_reward, t))
             break
-        """
 
-    np.save(f'ep_rewards_seed{seed}',np.array(ep_rewards))
 
 if __name__ == '__main__':
     main()
-
-

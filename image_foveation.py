@@ -47,7 +47,7 @@ def foveat_img(im, fixs, sigma=0.248, prNum=6):
     """
     im: input image
     fixs: sequences of fixations of form [(x1, y1), (x2, y2), ...]
-    
+
     This function outputs the foveated image with given input image and fixations.
     """
     # sigma=0.248
