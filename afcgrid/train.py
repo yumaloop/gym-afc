@@ -1,4 +1,5 @@
 import gym
+import math
 import random
 import numpy as np
 from itertools import count
@@ -14,7 +15,7 @@ from model import ActorCriticModel
 
 # https://github.com/pytorch/examples/blob/master/reinforcement_learning/actor_critic.py
 # seed = random.randint(0,100)
-seed = 42
+seed = 43
 gamma = 0.99
 log_interval = 10
 env = AfcEnvGrid()
@@ -27,17 +28,26 @@ model = ActorCriticModel()
 optimizer = optim.Adam(model.parameters(), lr=3e-2)
 eps = np.finfo(np.float32).eps.item()
 
-
 steps_done = 0
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 300
+
 def select_action(state):
+    global steps_done
     state = torch.from_numpy(state).float()
     probs, state_value = model(state)
     
-    # create a categorical distribution over the list of probabilities of actions
-    m = Categorical(probs)
+    rand = random.random()
+    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
+    steps_done += 1
 
-    # and sample an action using the distribution
-    action = m.sample()
+    if rand > eps_threshold:
+        m = Categorical(probs)
+        action = m.sample()
+    else:
+        m = Categorical(torch.tensor([[1/8 for _ in range(8)]]))
+        action = m.sample()
 
     # save to action buffer
     el = SavedAction(m.log_prob(action), state_value)
@@ -81,7 +91,9 @@ def finish_episode():
     optimizer.zero_grad()
 
     # sum up all the values of policy_losses and value_losses
-    loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
+    a_loss = torch.stack(policy_losses).sum() 
+    c_loss = torch.stack(value_losses).sum()
+    loss = a_loss + c_loss
     loss = loss.double()
 
     # perform backprop
@@ -91,6 +103,8 @@ def finish_episode():
     # reset rewards and action buffer
     del model.rewards[:]
     del model.saved_actions[:]
+
+    return a_loss.detach().item(), c_loss.detach().item()
 
 
 def main():
@@ -129,7 +143,7 @@ def main():
         running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
 
         # perform backprop
-        finish_episode()
+        a_loss, c_loss = finish_episode()
 
         ep_rewards.append(ep_reward)
 
@@ -138,13 +152,16 @@ def main():
         if i_episode % log_interval == 0:
             print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(
                   i_episode, ep_reward, running_reward))
+            print("a_loos:", a_loss, "c_loss", c_loss)
 
         # check if we have "solved" the cart pole problem
+        """
         reward_threshold = 45
         if running_reward > reward_threshold:
             print("Solved! Running reward is now {} and "
                   "the last episode runs to {} time steps!".format(running_reward, t))
             break
+        """
 
     np.save(f'ep_rewards_seed{seed}',np.array(ep_rewards))
     torch.save(model.state_dict(), f'./saved_model/model_seed{seed}')

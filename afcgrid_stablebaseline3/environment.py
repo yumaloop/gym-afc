@@ -44,8 +44,10 @@ class AfcEnvGrid(gym.Env):
     def reset(self, init_pos=None):
         # 状態を初期化し、初期の観測値を返す
         self.TIME_STEP = 0
-        self.TIME_STEP_LEN = 200
-        self.fixs = np.array([int(self.im_height/2), int(self.im_width/2)])
+        self.TIME_STEP_LEN = 300
+        # self.fixs = np.array([int(self.im_height/2), int(self.im_width/2)])
+        # self.fixs = init_pos if init_pos else np.random.randint(40,60,(2,)) 
+        self.fixs = np.array([35,25])
         observation = self.fixs
         return observation
 
@@ -94,7 +96,11 @@ class AfcEnvGrid(gym.Env):
 
     def render(self, mode="human", close=False):
         # 環境を可視化する
-        pass
+        img = np.zeros((self.im_height, self.im_width, 3)) #画面初期化
+        cv2.circle(img,  tuple(self.fixs), 1, (0, 255, 0), thickness=1) #ゴールの描画
+        cv2.circle(img,  tuple(self.fixs), 10, (0, 255, 0), thickness=1) #ゴールの描画
+        cv2.imshow('image', img)
+        cv2.waitKey(1)
 
     def close(self):
         # 環境を閉じて後処理をする
